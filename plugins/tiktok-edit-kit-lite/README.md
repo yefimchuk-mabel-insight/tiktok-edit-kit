@@ -27,9 +27,13 @@ No Docker and no accounts. Nothing is uploaded.
 - Rules that come from real complaints: "not on the beat", "the end is silent", "the loop jumps".
 
 ## Pro edition
-Pro adds **four more styles** (velocity/phonk with speed ramps, cinematic, collage/scrapbook, dark manga dossier) and
-**reference matching**. You drop in any edit you like. It measures every cut, flash, camera move, colour and its timing,
-writes a numeric style spec, builds yours to match, and scores the result against the reference.
+**Any edit → yours.** You drop in any TikTok or Reels edit you like and your photos. Pro works out how the edit is built:
+- every cut, flash and camera move;
+- the captions and the font;
+- the cut-out people and the colour.
+
+It rebuilds the edit with your media, checks the draft against the original before you see it, and delivers the file. It also includes the building
+blocks (layered collage, velocity/phonk, cinematic, collage, dossier) and the quality gates. Available on Agensi.
 
 ## Licence
 MIT. The renders are silent on purpose: add the sound inside TikTok, so it plays from the start and the loop restarts with it.
