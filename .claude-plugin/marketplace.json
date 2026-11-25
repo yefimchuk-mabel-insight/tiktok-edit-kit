@@ -1,0 +1,14 @@
+{
+  "name": "tiktok-edit-kit",
+  "description": "TikTok Edit Kit for Claude Code",
+  "owner": {
+    "name": "yefimchuk-mabel-insight"
+  },
+  "plugins": [
+    {
+      "name": "tiktok-edit-kit-lite",
+      "source": "./plugins/tiktok-edit-kit-lite",
+      "description": "Beat-synced kinetic-text TikTok/Reels videos with HyperFrames: words land on the beat, video ends with the sound, seamless loop."
+    }
+  ]
+}

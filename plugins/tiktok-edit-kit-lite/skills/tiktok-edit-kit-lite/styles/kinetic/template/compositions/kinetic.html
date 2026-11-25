@@ -1,0 +1,148 @@
+<template>
+  <!-- Kinetic text: each entry of WORDS lands on a beat as a new line in a stacked, width-fitted block.
+       Flags (space-separated):
+         new  — start a new phrase (the previous block whips toward the camera and out just before it)
+         big  — slam: the line fills the width, 1-frame flash + 6-frame shake
+         soft — small serif lowercase, typed in (contrast with the condensed caps)
+         red  — accent colour
+         inv  — the screen inverts (paper background, black ink) while this line is the newest
+       Everything is a pure function of time: no random, no timers. -->
+  <style>
+    #root { position: absolute; inset: 0; overflow: hidden; --ink: #f4f1ea; --paper: #0a0a0a; --accent: #ff2d2d; }
+    .shot { position: absolute; inset: 0; }
+    #k-bg { position: absolute; inset: 0; background: var(--paper); }
+    #k-cam { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; transform-origin: 540px 960px; }
+    .ln { position: absolute; left: 0; top: 0; white-space: nowrap; color: var(--ink); transform-origin: 50% 50%;
+      font-family: "League Gothic", "Oswald", sans-serif; text-transform: uppercase; line-height: 1; letter-spacing: .005em; }
+    .ln.soft { font-family: "EB Garamond", serif; text-transform: none; letter-spacing: .01em; }
+    .ln.big { font-family: "Archivo Black", "League Gothic", sans-serif; letter-spacing: -.02em; }
+    .ln.red { color: var(--accent); }
+    #k-meta { position: absolute; left: 130px; top: 290px; font-family: "Space Mono", monospace; font-size: 28px; letter-spacing: .12em; color: var(--ink); opacity: .55; }
+    #k-sig { position: absolute; right: 170px; top: 290px; text-align: right; font-family: "Space Mono", monospace; font-size: 28px; letter-spacing: .2em; color: var(--ink); opacity: .4; }
+    #k-rule { position: absolute; left: 130px; width: 780px; top: 345px; height: 2px; background: var(--ink); opacity: .25; transform-origin: 0 50%; }
+    #k-grain { position: absolute; inset: 0; opacity: .08; mix-blend-mode: screen;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='320' height='320'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"); }
+    #k-vig { position: absolute; inset: 0; background: radial-gradient(ellipse 85% 70% at 50% 50%, rgba(0,0,0,0) 55%, rgba(0,0,0,.55) 100%); }
+    #k-flash { position: absolute; inset: 0; background: #ffffff; opacity: 0; }
+  </style>
+  <div id="root" data-composition-id="kinetic" data-width="1080" data-height="1920">
+    <div id="k-layer" class="clip shot" data-start="0" data-duration="8" data-track-index="0" data-layout-allow-overflow data-layout-allow-overlap>
+      <div id="k-bg"></div>
+      <div id="k-cam" data-layout-ignore>
+        <div class="ln" id="ln0"></div><div class="ln" id="ln1"></div><div class="ln" id="ln2"></div><div class="ln" id="ln3"></div>
+        <div class="ln" id="ln4"></div><div class="ln" id="ln5"></div><div class="ln" id="ln6"></div><div class="ln" id="ln7"></div>
+      </div>
+      <div id="k-meta"></div>
+      <div id="k-rule"></div>
+      <div id="k-sig" data-var-text="signature"></div>
+      <div id="k-grain"></div>
+      <div id="k-vig"></div>
+      <div id="k-flash"></div>
+    </div>
+  </div>
+  <script>
+    (function () {
+      // ── EDIT HERE ──────────────────────────────────────────────────────────────────────────────
+      // [frame at 30 fps, text, flags]. Put each entry on a beat/onset (scripts/beatgrid.py --words prints this list).
+      const WORDS = [
+        [6, "WE", "new"], [13, "WERE"], [21, "NEVER"], [28, "MEANT"], [36, "to", "soft"], [44, "STAY", "big red"],
+        [66, "so we", "new soft"], [74, "KEPT"], [81, "RUNNING", "big"],
+        [104, "FASTER", "new inv"], [118, "THAN"], [126, "THE"], [133, "NIGHT", "big red"],
+        [156, "and now", "new soft"], [164, "WE'RE"], [171, "JUST"], [178, "ECHOES", "big"],
+        [201, "STILL", "new big red"],
+      ];
+      const LENGTH = 8;          // = root data-duration (the sound length)
+      const OUT_AT = 226;        // frame where the last phrase whips out; the film ends on black = its first frame (seamless loop)
+      // ──────────────────────────────────────────────────────────────────────────────────────────
+      // TikTok safe area: keep text in y 360..1440 (top bar, caption and buttons cover the rest), x 90..990
+      const W = 840, CX = 540, CY = 900, MAXH = 520, MAXBLOCK = 1080, GAP = 0.02;
+      const T = (f) => f / 30 - 0.002;
+      const has = (e, flag) => (" " + (e[2] || "") + " ").indexOf(" " + flag + " ") >= 0;
+      const cl = (v) => Math.max(0, Math.min(1, v));
+      const eo = (p) => 1 - Math.pow(1 - cl(p), 4);
+      const $ = (id) => document.getElementById(id);
+      const lines = [0, 1, 2, 3, 4, 5, 6, 7].map((i) => $("ln" + i));
+      const GL = "ABCDEFGHIJKLMNOPQRSTUVWXYZ#%&/<>";
+
+      function styleLine(el, e) {
+        el.className = "ln" + (has(e, "soft") ? " soft" : "") + (has(e, "big") ? " big" : "") + (has(e, "red") ? " red" : "");
+      }
+      // width of a line at 100 px, measured on a canvas (no DOM measurement inside the timeline callback)
+      const ctx = document.createElement("canvas").getContext("2d");
+      function w100(e) {
+        const soft = has(e, "soft"), big = has(e, "big"), txt = soft ? e[1] : e[1].toUpperCase();
+        ctx.font = soft ? '100px "EB Garamond"' : big ? '100px "Archivo Black"' : '100px "League Gothic"';
+        return Math.max(1, ctx.measureText(txt).width + txt.length * (soft ? 1 : big ? -2 : 0.5));
+      }
+      // font size that makes the line exactly W wide (soft lines: 62% of W), capped by MAXH
+      function fit(e) { return Math.min(has(e, "soft") ? 150 : MAXH, (100 * (has(e, "soft") ? W * 0.62 : W)) / w100(e)); }
+      function phraseOf(i) { let p = i; while (p > 0 && !has(WORDS[p], "new")) p--; return p; }
+      function nextNew(i) { for (let j = i + 1; j < WORDS.length; j++) if (has(WORDS[j], "new")) return WORDS[j][0]; return OUT_AT; }
+      // stacked layout of entries p..i at natural size, plus the scale that fits it into MAXBLOCK
+      function layout(p, i) {
+        const out = []; let y = 0;
+        for (let j = p; j <= i; j++) {
+          const fs = fit(WORDS[j]), h = fs * (has(WORDS[j], "soft") ? 1.05 : 0.9);
+          out.push({ fs, y, h }); y += h + fs * GAP;
+        }
+        return { rows: out, H: y, sc: Math.min(1, MAXBLOCK / Math.max(1, y)) };
+      }
+      function render(t) {
+        let i = -1;
+        for (let j = 0; j < WORDS.length; j++) if (t >= T(WORDS[j][0])) i = j;
+        lines.forEach((el) => { el.style.opacity = 0; });
+        $("k-flash").style.opacity = 0;
+        const bg = $("k-bg"), root = $("k-layer");
+        bg.style.background = "var(--paper)"; root.style.setProperty("--ink", "#f4f1ea");
+        $("k-meta").textContent = ""; $("k-cam").style.transform = "none";
+        if (i < 0) return;
+        const p = phraseOf(i), e = WORDS[i], u = t - T(e[0]);
+        const inv = has(e, "inv");
+        if (inv) { bg.style.background = "#f1ede4"; root.style.setProperty("--ink", "#0b0b0b"); }
+        // block layout: the stack slides up to re-centre as each line lands, and shrinks to fit when it gets tall
+        const now = layout(p, i), prev = i > p ? layout(p, i - 1) : { H: 0, sc: now.sc };
+        const k = eo(u / 0.14), sc = prev.sc + (now.sc - prev.sc) * k;
+        const Hs = prev.H * prev.sc + (now.H * now.sc - prev.H * prev.sc) * k, top = CY - Hs / 2;
+        now.rows.forEach((r, n) => {
+          const j = p + n, el = lines[n % lines.length], ej = WORDS[j];
+          styleLine(el, ej); el.textContent = ej[1];
+          const fs = r.fs * sc; el.style.fontSize = fs + "px";
+          const w = (w100(ej) * fs) / 100;
+          let s = 1, txt = ej[1];
+          if (j === i) {
+            if (has(ej, "soft")) {               // typed in, scramble edge
+              const q = cl(u / 0.2), m = Math.floor(txt.length * q); let out = txt.slice(0, m);
+              if (q < 1) for (let c = m; c < Math.min(m + 2, txt.length); c++) out += txt[c] === " " ? " " : GL[(c * 7 + m * 3) % GL.length].toLowerCase();
+              el.textContent = out;
+            } else s = 1 + (has(ej, "big") ? 0.45 : 0.22) * (1 - eo(u / 0.12));   // pop
+          }
+          el.style.opacity = j === i || !has(ej, "soft") ? 1 : 0.75;
+          el.style.transform = `translate(${CX - w / 2}px, ${top + r.y * sc}px) scale(${s})`;
+        });
+        // slam: 1-frame flash + 6-frame shake (deterministic)
+        let sx = 0, sy = 0;
+        if (has(e, "big")) {
+          if (u < 1 / 30) $("k-flash").style.opacity = 0.9;
+          const f = Math.floor(u * 30);
+          if (f < 6) { const a = (6 - f) * 3.2; sx = Math.sin(f * 2.7 + 1) * a; sy = Math.cos(f * 3.1) * a; }
+        }
+        // whip out before the next phrase: zoom toward the camera + fade over 5 frames
+        const nf = nextNew(i), wo = cl((t - T(nf - 5)) / (5 / 30));
+        const drift = 1 + 0.03 * cl((t - T(WORDS[p][0])) / 1.5);
+        const z = drift * (1 + 1.6 * wo * wo);
+        $("k-cam").style.transform = `translate(${sx}px, ${sy}px) translate(540px, 960px) scale(${z}) translate(-540px, -960px)`;
+        $("k-cam").style.opacity = 1 - wo;
+        $("k-cam").style.filter = wo > 0 ? `blur(${wo * 10}px)` : "none";
+        $("k-meta").textContent = String(i + 1).padStart(2, "0") + " / " + String(WORDS.length).padStart(2, "0");
+        if (t >= T(OUT_AT) + 5 / 30) $("k-meta").textContent = "";
+      }
+      function grain(t) { const f = Math.floor(t * 24); $("k-grain").style.backgroundPosition = ((f * 73) % 320) + "px " + ((f * 151) % 320) + "px"; }
+      const tl = gsap.timeline({ paused: true });
+      tl.fromTo("#k-rule", { scaleX: 0 }, { scaleX: 1, duration: 0.5, ease: "expo.out" }, T(WORDS[0][0]));
+      tl.to("#k-rule", { scaleX: 0, duration: 0.2, ease: "power2.in" }, T(OUT_AT));
+      tl.to({}, { duration: LENGTH, ease: "none", onUpdate: () => { render(tl.time()); grain(tl.time()); } }, 0);
+      render(0); grain(0);
+      window.__timelines["kinetic"] = tl;
+    })();
+  </script>
+</template>

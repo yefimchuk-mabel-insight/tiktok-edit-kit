@@ -1,0 +1,23 @@
+{
+  "name": "tiktok-edit-kit-lite",
+  "displayName": "TikTok Edit Kit Lite",
+  "version": "1.1.0",
+  "description": "Beat-synced kinetic-text TikTok/Reels videos with HyperFrames: words land on the beat, video ends with the sound, seamless loop.",
+  "author": {
+    "name": "yefimchuk-mabel-insight",
+    "url": "https://github.com/yefimchuk-mabel-insight"
+  },
+  "homepage": "https://github.com/yefimchuk-mabel-insight/tiktok-edit-kit",
+  "repository": "https://github.com/yefimchuk-mabel-insight/tiktok-edit-kit",
+  "license": "MIT",
+  "keywords": [
+    "video",
+    "tiktok",
+    "reels",
+    "hyperframes",
+    "beat-sync",
+    "kinetic-typography",
+    "ffmpeg",
+    "edit"
+  ]
+}
