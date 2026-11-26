@@ -7,16 +7,45 @@ try:                                                       # Windows pipes defau
     _u8.stdout.reconfigure(encoding="utf-8"); _u8.stderr.reconfigure(encoding="utf-8")
 except Exception:
     pass
-import os, sys, html, shutil, argparse, re, json
+import os, sys, html, shutil, argparse, re, json, subprocess
 
-ap = argparse.ArgumentParser(); ap.add_argument("ours"); ap.add_argument("--ref"); ap.add_argument("--compare"); ap.add_argument("--draft")
+ap = argparse.ArgumentParser(); ap.add_argument("ours", nargs="?", help="the video to show; leave out for a progress-only page while working"); ap.add_argument("--ref"); ap.add_argument("--compare"); ap.add_argument("--draft")
 ap.add_argument("-o", "--out", default="out/review.html"); ap.add_argument("--title", default="Review")
 ap.add_argument("--lang", default="en", help="language of the page (the user's language; en and uk are built in, others fall back to en)")
 ap.add_argument("--stage", default="final", choices=["analyzed", "built", "checked", "draft", "final"], help="how far the work is (progress bar)")
 ap.add_argument("--watch", action="store_true", help="reload the page every 5 s (while Claude is still working)")
 ap.add_argument("--note", default="", help="one plain sentence for the user at the top")
 ap.add_argument("--details", action="store_true", help="also show the reference, the element pairs and the scorecard (for Claude, not the user)")
+ap.add_argument("--eta", type=int, help="minutes left (progress page)")
+ap.add_argument("--no-ref", action="store_true", help="an edit made WITHOUT a reference: no compare gate (verify.py must pass instead)")
+ap.add_argument("--explained", default="", help="why each remaining OFF line of compare.md is fine (required when there are OFF lines)")
 a = ap.parse_args()
+if not a.ours:
+    import html as _h, os as _o
+    _st = ["analyzed", "built", "checked", "draft", "final"]; _r = _st.index(a.stage) if a.stage in _st else 0
+    if a.no_ref:
+        _names = {"uk": ["Матеріал і звук розібрано", "Відео зібрано", "Перевірено", "Чернетка", "Фінал"]}.get(a.lang) or ["Media and sound read", "Edit built", "Checked", "Draft", "Final"]
+    else:
+        _names = {"uk": ["Приклад розібрано", "Відео зібрано", "Звірено з прикладом", "Чернетка", "Фінал"]}.get(a.lang) or ["Example analysed", "Edit built", "Checked against the example", "Draft", "Final"]
+    _wait = {"uk": "Працюю над відео. Сторінка оновлюється сама — можна просто чекати.", "en": "Working on your video. This page refreshes by itself."}.get(a.lang, "Working on your video. This page refreshes by itself.")
+    _o.makedirs(_o.path.dirname(a.out) or ".", exist_ok=True)
+    _li = "".join(f'<li style="opacity:{1 if i <= _r else .4}">{"✓ " if i < _r else ("… " if i == _r else "")}{_h.escape(n)}</li>' for i, n in enumerate(_names))
+    open(a.out, "w", encoding="utf-8").write(f"""<!doctype html><html lang="{_h.escape(a.lang)}"><head><meta charset="utf-8"><meta http-equiv="refresh" content="5">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>{_h.escape(a.title)}</title></head>
+<body style="font:17px/1.5 -apple-system,system-ui,sans-serif;background:#111;color:#eee;max-width:640px;margin:60px auto;padding:0 20px">
+<h1 style="font-weight:600">{_h.escape(a.title)}</h1><p>{_h.escape(a.note or _wait)}</p>{('<p><b>' + _h.escape(({"uk": "Лишилось приблизно {m} хв"}.get(a.lang) or "About {m} min left").format(m=a.eta)) + '</b></p>') if a.eta else ''}<ol style="padding-left:20px">{_li}</ol></body></html>""")
+    print(a.out); raise SystemExit(0)
+# Gate: the user never sees a draft that was not checked against the reference (blind test 1: skipping this made the user find the misses).
+if a.stage in ("draft", "final") and not a.details and not a.no_ref:
+    import os as _o, re as _r, sys as _s
+    cmp_md = a.compare or "compare-out/compare.md"
+    if _o.path.isdir(cmp_md): cmp_md = _o.path.join(cmp_md, "compare.md")      # the folder works too (buyer test)
+    if not _o.path.exists(cmp_md) or _o.path.getmtime(cmp_md) < _o.path.getmtime(a.ours):
+        _s.exit(f"GATE: run compare.py {a.ours} <reference> first ({cmp_md} is missing or older than the video). "
+                "Also look at the reference and ours side by side (pairs.py) before showing the user.")
+    off = [l.strip() for l in open(cmp_md, encoding="utf-8") if l.lstrip().startswith("|") and _r.search(r"\|\s*OFF\s*\|", l)]
+    if off and not a.explained:
+        _s.exit("GATE: compare.md still has OFF lines. Fix them, or pass --explained \"why each is fine\":\n  " + "\n  ".join(off))
 out_dir = os.path.dirname(os.path.abspath(a.out)); media = os.path.join(out_dir, "review-files"); os.makedirs(media, exist_ok=True)
 
 def bring(path, name):
@@ -58,9 +87,15 @@ TR = {
             play="▶ Грати обидва", pause="❚❚ Пауза", files="Файли", score="Що збігається", folder="Відкрити папку", steps=["Приклад розібрано", "Відео зібрано", "Незалежна перевірка", "Чернетка", "Фінал"],
             like="👍 Подобається — роби фінал", likemsg="фінал", change="Змінити щось у цьому місці",
             comment="Коментар до цього кадру", placeholder="напр.: тут текст має бути більшим", copy="Скопіювати для Claude", copied="Скопійовано — встав у чат",
-            at="На {t} с (кадр {f})", how="Як дивитися: натисни «Грати», зупини там, де щось не так, напиши коментар і скопіюй його для Claude."),
+            fb="−1 кадр", ff="+1 кадр", at="На {t} с (кадр {f})", how="Як дивитися: натисни «Грати», зупини там, де щось не так, напиши коментар і скопіюй його для Claude."),
 }
-T = TR.get(a.lang, TR["en"])
+T = dict(TR.get(a.lang, TR["en"]))
+try:
+    _has_audio = bool(subprocess.run(["ffprobe", "-v", "error", "-select_streams", "a", "-show_entries", "stream=index", "-of", "csv=p=0", a.ours],
+                                     capture_output=True, text=True).stdout.strip())
+except Exception:
+    _has_audio = False
+if _has_audio: T["ours"] = {"uk": "Наше (зі звуком)"}.get(a.lang, "Ours (with sound)")
 STAGES = ["analyzed", "built", "checked", "draft", "final"]; reached = STAGES.index(a.stage)
 steps = "".join(f'<li class="{"done" if i <= reached else ""}">{"✓ " if i <= reached else ""}{html.escape(n)}</li>' for i, n in enumerate(T["steps"]))
 files = [(T["final"], ours if a.stage == "final" else None), (T["draft"], draft or (ours if a.stage != "final" else None)), (T["reference"], ref)]
@@ -86,9 +121,9 @@ tr.close td:nth-child(4) {{ color:var(--close) }} tr.off td:nth-child(4) {{ colo
 <ol class="steps">{steps}</ol>{f'<div class="note">{html.escape(a.note)}</div>' if a.note else ''}
 <div class="sub" style="margin-top:8px">{(html.escape(T["score"]) + ': <span class="pill">' + verdict + '</span>') if verdict else ''}</div>
 {('<div class="vids"><figure><video id="vr" src="' + ref + '" muted playsinline preload="auto"></video><figcaption>' + html.escape(T["reference"]) + '</figcaption></figure><figure><video id="vo" src="' + ours + '" muted playsinline preload="auto"></video><figcaption>' + html.escape(T["ours"]) + '</figcaption></figure></div>') if ref else
-  ('<div class="phone"><video id="vo" src="' + ours + '" muted playsinline preload="auto" style="border-radius:16px"></video></div><div class="sub" style="text-align:center;margin-top:6px">' + html.escape(T["ours"]) + '</div>')}
+  ('<div class="phone"><video id="vo" src="' + ours + '" controls playsinline preload="auto" style="border-radius:16px"></video></div><div class="sub" style="text-align:center;margin-top:6px">' + html.escape(T["ours"]) + '</div>')}
 <div class="bar" style="justify-content:center"><button id="like" class="big">{html.escape(T["like"])}</button></div>
-<div class="bar"><button id="pp">{T["play"]}</button><button id="fb">−1 frame</button><button id="ff">+1 frame</button>
+<div class="bar"><button id="pp">{T["play"]}</button><button id="fb">{T.get("fb", "−1 frame")}</button><button id="ff">{T.get("ff", "+1 frame")}</button>
 <input id="sk" type="range" min="0" max="1000" value="0"><span id="tc" class="sub">0.00 s</span></div>
 <h2>{html.escape(T["change"])}</h2><textarea id="cm" placeholder="{html.escape(T["placeholder"])}"></textarea>
 <div class="bar"><button id="cp">{html.escape(T["copy"])}</button><span id="cpok" class="sub"></span></div>

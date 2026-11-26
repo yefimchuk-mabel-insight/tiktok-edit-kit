@@ -67,8 +67,64 @@ try:
     # ── verify
     r = subprocess.run([PY, "-I", os.path.join(HERE, "verify.py"), vid, "--hits", "60,120", "--length-frames", "240", "--cut-loop"], capture_output=True, text=True, encoding="utf-8", errors="replace")
     check("verify: length + flashes", r.returncode == 0 and "ALL OK" in r.stdout, r.stdout.strip().split("\n")[-1] if r.stdout else r.stderr[-200:])
+    # ── probe: a word filled with the frame's negative, a glyph that grows in two hard steps, a locked camera
+    if os.path.exists(os.path.join(HERE, "probe.py")):
+        PW, PH, PN = 640, 360, 90
+        yy, xx = np.mgrid[0:PH, 0:PW].astype(np.float32)
+        bg = np.stack([128 + 100 * np.sin(xx / 40), 128 + 100 * np.sin(yy / 30 + 1), 128 + 100 * np.cos((xx + yy) / 50)], 2)
+        word = np.zeros((PH, PW), bool)
+        for k in range(3): word[110:200, 120 + k * 110:190 + k * 110] = True; word[130:180, 140 + k * 110:170 + k * 110] = False
+        pv = os.path.join(tmp, "probe.mp4"); fr = bytearray()
+        for f in range(PN):
+            m = word.copy() if f < 30 else np.zeros_like(word)
+            if f >= 30:
+                r = 30 if f < 50 else (40 if f < 70 else 52)                       # steps at 50 and 70
+                cy, cx = 220, 400; m[cy - r:cy + r, cx - r:cx + r] = True; m[cy - r // 2:cy + r // 2, cx - r // 2:cx + r // 2] = False
+            img = bg.copy(); img[m] = 255 - img[m]; fr += np.clip(img, 0, 255).astype(np.uint8).tobytes()
+        subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{PW}x{PH}", "-r", "30", "-i", "-",
+                        "-c:v", "libx264", "-crf", "14", "-pix_fmt", "yuv420p", pv], input=bytes(fr), check=True)
+        po = os.path.join(tmp, "probe-out")
+        r = subprocess.run([PY, "-I", os.path.join(HERE, "probe.py"), pv, "-o", po, "--no-person"], capture_output=True, text=True, encoding="utf-8", errors="replace")
+        check("probe runs", r.returncode == 0, r.stderr.strip()[-300:])
+        if r.returncode == 0:
+            P = json.load(open(os.path.join(po, "probe.json"), encoding="utf-8")); E = P["elements"]
+            check("probe: the word's fill is the negative", any("negative" in (e["fill"] or "") and (e["on"] or [99])[0] <= 5 for e in E), str([(e["box"], e["fill"]) for e in E]))
+            steps = sorted({s_ for e in E for s_ in (e.get("steps") or [])})
+            check("probe: glyph steps at 50 and 70", any(abs(s_ - 50) <= 1 for s_ in steps) and any(abs(s_ - 70) <= 1 for s_ in steps), f"got {steps}")
+            check("probe: camera locked", all(sh["camera"]["move"] in ("locked", "too short to tell") for sh in P["shots"]), str([sh["camera"]["move"] for sh in P["shots"]]))
+    # ── depthtext block: builds a project from a tiny clone.json (no render, no cut-out)
+    dt = os.path.join(os.path.dirname(HERE), "styles", "depthtext", "build.py")
+    if os.path.exists(dt):
+        ph = os.path.join(tmp, "photo.jpg"); pj = os.path.join(tmp, "dt"); os.makedirs(pj, exist_ok=True)
+        subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "lavfi", "-i", "testsrc2=s=640x360", "-frames:v", "1", ph], check=True)
+        cj = os.path.join(tmp, "clone.json")
+        json.dump({"size": [640, 360], "length_frames": 60, "shots": [
+            {"start": 0, "end": 30, "photo": ph, "word": "SKY", "box": [0.1, 0.2, 0.9, 0.5]},
+            {"start": 30, "end": 60, "photo": ph, "glyph": "ろ", "box": [0.4, 0.3, 0.6, 0.7], "steps": [[45, 1.3, 0, 0]]}]}, open(cj, "w", encoding="utf-8"))
+        r = subprocess.run([PY, "-I", dt, cj, pj], capture_output=True, text=True, encoding="utf-8", errors="replace")
+        ok = r.returncode == 0 and os.path.exists(os.path.join(pj, "index.html")) and os.path.exists(os.path.join(pj, "compositions", "depth.html"))
+        check("depthtext block builds a project", ok, (r.stdout + r.stderr).strip()[-300:])
 finally:
     shutil.rmtree(tmp, ignore_errors=True)
+# every script compiles under THIS Python (a 3.12-only f-string broke the kit on 3.11; stress.py caught it)
+import py_compile as _pc, glob as _gl
+_kit = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_bad = []
+for _f in _gl.glob(os.path.join(_kit, "scripts", "*.py")) + _gl.glob(os.path.join(_kit, "styles", "*", "template", "*.py")) + _gl.glob(os.path.join(_kit, "styles", "*", "*.py")):
+    try: compile(open(_f, encoding="utf-8").read(), _f, "exec")
+    except SyntaxError as _e: _bad.append(f"{os.path.basename(_f)}:{_e.lineno}")
+check("every script compiles on this Python", not _bad, ", ".join(_bad))
+
 bad = [n for n, ok, _ in results if not ok]
 print(f"\n{len(results) - len(bad)}/{len(results)} passed." + (" All good — the kit works on this machine." if not bad else " Failed: " + ", ".join(bad)))
+if not bad:   # step 0 is "once per machine": a new session skips doctor + selftest when this marker holds the version
+    try:
+        import re as _re
+        _kitd = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        _vf = os.path.join(_kitd, "VERSION")
+        _v = _re.search(r"(\d+\.\d+\.\d+)", open(_vf, encoding="utf-8").read() if os.path.exists(_vf) else open(os.path.join(_kitd, "CHANGELOG.md"), encoding="utf-8").read())
+        _d = os.path.join(os.path.expanduser("~"), ".cache", "tiktok-edit-kit"); os.makedirs(_d, exist_ok=True)
+        open(os.path.join(_d, "setup-ok"), "w").write((_v.group(1) if _v else "?") + "\n")
+    except Exception:
+        pass
 sys.exit(1 if bad else 0)

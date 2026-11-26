@@ -25,7 +25,11 @@ f = np.frombuffer(raw, np.uint8).reshape(-1, 180, 320).astype(np.float64)
 n = len(f); ok = True
 print(f"frames: {n} ({n / 30:.3f} s at 30 fps)", end="")
 if a.length_frames:
-    good = n == a.length_frames; ok &= good; print(f"  {'OK' if good else 'MISMATCH, want ' + str(a.length_frames)}")
+    r_ = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=r_frame_rate", "-of", "csv=p=0", a.video], capture_output=True, text=True).stdout.strip() or "30/1"
+    src_fps = float(r_.split("/")[0]) / float(r_.split("/")[1] or 1)
+    tol = max(0, round(30 / src_fps) - 1) if src_fps < 29 else 0          # a 15 fps fast draft can only land on every 2nd frame
+    good = abs(n - a.length_frames) <= tol; ok &= good
+    print(f"  {'OK' if good else 'MISMATCH, want ' + str(a.length_frames)}" + (f" (±{tol}: {src_fps:g} fps file)" if tol else ""))
 else: print()
 def ssim(x, y):
     c1, c2 = (0.01 * 255) ** 2, (0.03 * 255) ** 2; mx, my = x.mean(), y.mean()

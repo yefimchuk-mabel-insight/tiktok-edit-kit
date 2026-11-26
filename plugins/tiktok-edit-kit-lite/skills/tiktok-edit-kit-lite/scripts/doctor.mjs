@@ -44,6 +44,10 @@ else {
   const np = run(py, ["-c", "import numpy; print(numpy.__version__)"]);
   if (np.status === 0) ok(`numpy ${np.stdout.trim()}`);
   else { bad("numpy not installed"); todo.push(["numpy", `${py} -m pip install --user numpy`]); }
+  // optional: yt-dlp lets scripts/fetch.py take a TikTok / Reels / YouTube LINK instead of a file
+  const yd = run("yt-dlp", ["--version"]); const ym = run(py, ["-c", "import yt_dlp"]);
+  if (yd.status === 0 || ym.status === 0) ok("yt-dlp (links instead of files)");
+  else console.log("  INFO yt-dlp not installed (optional: lets you send a link instead of a file) — " + `${py} -m pip install --user yt-dlp`);
 }
 
 // HyperFrames CLI reachable through npx (downloads on first use)
@@ -53,6 +57,8 @@ else warn("couldn't run `npx hyperframes` (offline?). It is fetched on first ren
 
 if (!todo.length) { console.log("\nAll set. Try:  python3 -I scripts/selftest.py   (Windows: py -I scripts\\selftest.py)"); process.exit(0); }
 console.log("\nTo fix:");
+if (plat === "darwin" && !pm && todo.length)
+  console.log('  FIRST   install Homebrew (one line, paste in Terminal; it asks for your Mac password):\n          /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"\n          then run this check again: the rest installs with brew.');
 for (const [what, cmd] of todo) console.log(`  ${what.padEnd(7)} ${cmd}`);
 if (!fix) { console.log("\nRun again with --fix to install these automatically (after the user agrees)."); process.exit(1); }
 for (const [what, cmd] of todo) {
