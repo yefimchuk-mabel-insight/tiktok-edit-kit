@@ -1,39 +1,78 @@
-# TikTok Edit Kit: Lite
+# TikTok Edit Kit — Lite
 
-A free Claude Code plugin for **kinetic-text TikTok, Reels and Shorts videos**, made with [HyperFrames](https://hyperframes.heygen.com)
-(HTML + GSAP rendered to MP4). Give it a sound and a few lines of words. Big captions land on the beat, slams flash and shake,
-phrases whip out, the video ends with the sound and loops without a seam.
+**Beat-synced kinetic-text videos for TikTok, Reels and Shorts, made by Claude Code.**
+Give it a song and a few lines of words: big captions land on the beat, slams flash and shake, phrases whip out, and the video
+ends with the sound and loops without a seam.
 
 ![Kinetic text demo](docs/kinetic.gif)
 
-## Install (two commands in Claude Code)
+[![Claude Code plugin](https://img.shields.io/badge/Claude%20Code-plugin-d97757)](#install)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+![macOS · Windows · Linux](https://img.shields.io/badge/runs%20on-macOS%20·%20Windows%20·%20Linux-555)
+![No telemetry](https://img.shields.io/badge/telemetry-none-2ea44f)
+
+## Install
+
+In Claude Code, two commands:
 
 ```
 /plugin marketplace add yefimchuk-mabel-insight/tiktok-edit-kit
 /plugin install tiktok-edit-kit-lite@tiktok-edit-kit
 ```
 
-Then just ask: *"make a kinetic text TikTok of these lines to my sound"*. On the first run Claude checks your machine
-(`doctor.mjs`) and offers to install what's missing. It runs on **macOS, Windows and Linux**, and needs Node 22+, ffmpeg and Python 3 with numpy.
-No Docker and no accounts. Nothing is uploaded.
+Then just ask, in any language: *"make a kinetic text TikTok of these lines to my song"*.
 
-## What's inside
-- `beatgrid.py`: turns the sound into the video length and the beat frames, and places your words on the onsets (`--words "WE WERE | so_we KEPT RUNNING!"`).
-- The kinetic style template: condensed caps fitted to the width, soft serif breath words, slams, inverted frames and a phrase whip.
-- `finish.py`: motion blur, bloom and grain, without blending cut frames.
-- `verify.py`: before you post, checks that the length equals the sound, that the flashes are bright and that the loop seam is clean.
-- `sync.py`: measures a real TikTok upload, sound vs. picture in ms.
-- `doctor.mjs` and `selftest.py`: a setup check, and a proof the tools work on your machine.
-- Rules that come from real complaints: "not on the beat", "the end is silent", "the loop jumps".
+On the first run Claude checks your machine and offers to install what's missing: Node 22+, ffmpeg, and Python 3 with numpy.
+There is no Docker and no account, and **nothing is uploaded** — everything renders on your computer.
 
-## Pro edition
-**Any edit → yours.** You drop in any TikTok or Reels edit you like and your photos. Pro works out how the edit is built:
-- every cut, flash and camera move;
-- the captions and the font;
-- the cut-out people and the colour.
+## What you get
 
-It rebuilds the edit with your media, checks the draft against the original before you see it, and delivers the file. It also includes the building
-blocks (layered collage, velocity/phonk, cinematic, collage, dossier) and the quality gates. Available on Agensi.
+| | |
+|---|---|
+| **On the beat** | `beatgrid.py` turns the song into the video length and the beat frames, and places your words on the hits (`--words "WE WERE \| so_we KEPT RUNNING!"`). |
+| **The look** | Condensed caps fitted to the width, soft serif "breath" words, slams with a flash and a shake, an inverted frame, a phrase whip. |
+| **The finish** | `finish.py` adds motion blur, bloom and grain without blending the cut frames. |
+| **Checked before you post** | `verify.py` checks that the length equals the sound, that the flashes are bright and that the loop seam is clean. `sync.py` measures a real upload, sound vs. picture in ms. |
+| **Your setup, proven** | `doctor.mjs` checks the machine; `selftest.py` proves every tool works and compiles on your Python. |
+
+The rules inside come from real complaints: "not on the beat", "the end is silent", "the loop jumps".
+
+## Pro: any edit → yours
+
+![Footage block: a film edit made from free clips](docs/footage.gif)
+
+Found an edit you love and there's no CapCut template for it? Give Claude **the video (or its link) and your clips or photos.**
+Pro measures the edit frame by frame and rebuilds it on your footage. It then checks the result against the original, **shot by
+shot**, before you see it:
+
+- every cut, including 2-frame montages and dark intros; flashes, light leaks, inverts and the film gate;
+- the grade of each shot (tone match), the motion inside each shot (motion match), and banding;
+- a review page in your language, with **reference | yours** side by side;
+- 8 building blocks: film / travel footage, kinetic text, velocity / phonk, cinematic, collage, cut-out layers, depth text and a
+  dark anime dossier.
+
+It takes about 30 minutes to a first draft. The kit says up front which of your clips are too calm or missing.
+**[TikTok Edit Kit Pro on Agensi →](https://www.agensi.io)**
+
+| | Lite (free) | Pro |
+|---|---|---|
+| Kinetic text on the beat | ✓ | ✓ |
+| "Make it like this video" (a file or a link) | | ✓ |
+| Shot-by-shot tone and motion match, side-by-side check | | ✓ |
+| 8 building blocks for clips and photos | 1 | 8 |
+| Edits without an example: style from your words | | ✓ |
+
+## FAQ
+
+**Does it post for me?** No. It makes the video file. You post it yourself.
+
+**Why is my render silent?** On purpose: add the sound inside TikTok, so it plays from the start and the loop restarts with it.
+
+**Does it need a GPU?** No. A native run on macOS or Windows is the fastest.
+
+**Something broke.** Open an [issue](../../issues/new/choose) with the output of `node scripts/doctor.mjs` and the last lines of
+the failing command.
 
 ## Licence
-MIT. The renders are silent on purpose: add the sound inside TikTok, so it plays from the start and the loop restarts with it.
+
+MIT. HyperFrames is a separate project with its own licence.
