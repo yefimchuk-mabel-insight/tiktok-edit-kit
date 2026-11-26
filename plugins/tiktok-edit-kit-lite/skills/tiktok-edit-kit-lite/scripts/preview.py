@@ -22,10 +22,14 @@ ap = argparse.ArgumentParser(); ap.add_argument("mode", choices=["sheet", "draft
 ap.add_argument("--grain", type=int, default=6)
 ap.add_argument("--deliver", help="final only: also copy it to the user's Movies/Videos folder under this name and open the folder")
 ap.add_argument("--hits", default=""); ap.add_argument("--cut-loop", action="store_true")
+ap.add_argument("--pad", help="draft/final: also write a padded copy at this size, e.g. 1080x1920 for a 16:9 edit posted vertically (verify runs on the unpadded file)")
 ap.add_argument("--fast", action="store_true", help="draft only: half size (e.g. 960×540) at 15 fps, for gates and timing")
 a = ap.parse_args()
 if not os.path.exists("index.html"): _sys.exit("run this from the project folder (the one with index.html)")
 dur = float(re.search(r'data-composition-id="main"[^>]*data-duration="([\d.]+)"', open("index.html", encoding="utf-8").read()).group(1))
+import math as _m
+if _m.ceil(dur * 30 - 1e-9) != round(dur * 30):   # e.g. 26.367 for 791 frames renders 792 (buyer test 3): use N/30 − 0.001
+    print(f"note: data-duration {dur} renders {_m.ceil(dur * 30 - 1e-9)} frames, not {round(dur * 30)}: write {round(dur * 30)}/30 − 0.001 = {round(dur * 30) / 30 - 0.001:.4f}")
 win = os.name == "nt"
 def hf(args, **kw):
     if args[0] == "render" and os.environ.get("TEK_RENDER_WORKERS"):     # e.g. 3 in a 4-CPU container, where "auto" picks 1
@@ -57,9 +61,18 @@ elif a.mode == "draft" and a.fast:
 elif a.mode == "draft":
     rc, s = hf(["render", "--quality", "draft", "--fps", "30", "-o", "out/draft.mp4"])
     print(f"out/draft.mp4 ({s:.0f} s) — a draft: soft and without the finishing pass; the timing is exact." if rc == 0 else "draft render failed")
+    if rc == 0 and a.pad:
+        pw, ph = a.pad.lower().split("x")
+        subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", "out/draft.mp4", "-vf", f"scale={pw}:-2,pad={pw}:{ph}:0:(oh-ih)/2:black",
+                        "-c:a", "copy", "out/draft-padded.mp4"])
+        print(f"out/draft-padded.mp4 — {pw}×{ph} for the user; run verify on out/draft.mp4 (bars fail the flash check)")
 else:
     rc, s = hf(["render", "--quality", "looks", "--fps", "60", "-o", "out/raw60.mp4"])
     if rc == 0: rc = subprocess.run([_sys.executable, "-I", os.path.join(HERE, "finish.py"), "out/raw60.mp4", "out/final.mp4", "--grain", str(a.grain)]).returncode
+    if rc == 0 and a.pad:
+        pw, ph = a.pad.lower().split("x")
+        subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", "out/final.mp4", "-vf", f"scale={pw}:-2,pad={pw}:{ph}:0:(oh-ih)/2:black",
+                        "-c:a", "copy", "out/final-padded.mp4"])
     if rc == 0:
         nfr = round(dur * 30)
         if not a.cut_loop:      # the reference itself ends on a cut / black: a hard loop seam is right, not a failure
@@ -84,7 +97,7 @@ else:
             elif in_container:                               # the container's home is not the user's: keep it in the project
                 dest = os.path.abspath("out/deliver")        # (blind test 1: the file was copied inside the container and lost)
                 print("running in a container: delivered into the project's out/deliver/ — copy it to the user's Movies folder on the host")
-            os.makedirs(dest, exist_ok=True); target = os.path.join(dest, a.deliver + ".mp4"); _sh.copy2("out/final.mp4", target)
+            os.makedirs(dest, exist_ok=True); target = os.path.join(dest, a.deliver + ".mp4"); _sh.copy2("out/final-padded.mp4" if a.pad and os.path.exists("out/final-padded.mp4") else "out/final.mp4", target)
             if os.path.exists("POST.md"): _sh.copy2("POST.md", os.path.join(dest, a.deliver + "-POST.md"))
             opener = {"darwin": ["open"], "win32": ["explorer"]}.get(_sys.platform, ["xdg-open"])
             try:
