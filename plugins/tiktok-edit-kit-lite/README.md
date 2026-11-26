@@ -1,6 +1,11 @@
+<div align="center">
+
 # TikTok Edit Kit — Lite
 
 **Beat-synced kinetic-text videos for TikTok, Reels and Shorts, made by Claude Code.**
+
+</div>
+
 Give it a song and a few lines of words: big captions land on the beat, slams flash and shake, phrases whip out, and the video
 ends with the sound and loops without a seam.
 
@@ -39,20 +44,27 @@ The rules inside come from real complaints: "not on the beat", "the end is silen
 
 ## Pro: any edit → yours
 
-![Footage block: a film edit made from free clips](docs/footage.gif)
+![How it works](docs/how-it-works.gif)
 
 Found an edit you love and there's no CapCut template for it? Give Claude **the video (or its link) and your clips or photos.**
-Pro measures the edit frame by frame and rebuilds it on your footage. It then checks the result against the original, **shot by
-shot**, before you see it:
+Pro measures the edit frame by frame and rebuilds it on your footage. Before you see it, it checks the result against the
+original, **shot by shot**:
+
+![Reference vs your clips](docs/ref-to-result.gif)
+
+| Film / travel | Dark film | Depth text | Cut-out layers |
+|---|---|---|---|
+| ![Footage](docs/footage.gif) | ![Dark footage](docs/footage-dark.gif) | ![Depth text](docs/depthtext.gif) | ![Layered](docs/layered.gif) |
 
 - every cut, including 2-frame montages and dark intros; flashes, light leaks, inverts and the film gate;
 - the grade of each shot (tone match), the motion inside each shot (motion match), and banding;
 - a review page in your language, with **reference | yours** side by side;
-- 8 building blocks: film / travel footage, kinetic text, velocity / phonk, cinematic, collage, cut-out layers, depth text and a
-  dark anime dossier.
+- 8 building blocks;
+- about 30 minutes to a first draft. The kit tells you up front which of your clips are too calm or missing.
 
-It takes about 30 minutes to a first draft. The kit says up front which of your clips are too calm or missing.
 **[TikTok Edit Kit Pro on Agensi →](https://www.agensi.io)**
+
+<sub>Demo media: free stock clips/photos and template renders (credits: `docs/CREDITS.md`).</sub>
 
 | | Lite (free) | Pro |
 |---|---|---|
