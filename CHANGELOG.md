@@ -1,4 +1,4 @@
 # Changelog
 
-## 1.3.4
+## 1.3.5
 - Kinetic-text edits on the beat; doctor, selftest, beatgrid --words, preview ladder, review page, verify, sync.

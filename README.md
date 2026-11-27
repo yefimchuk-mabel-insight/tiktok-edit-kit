@@ -6,7 +6,7 @@
 
 [![Claude Code plugin](https://img.shields.io/badge/Claude%20Code-plugin-d97757)](#install)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
-![macOS · Windows · Linux](https://img.shields.io/badge/runs%20on-macOS%20·%20Windows%20·%20Linux-555)
+![macOS · Linux · Windows (beta)](https://img.shields.io/badge/runs%20on-macOS%20·%20Linux%20·%20Windows%20(beta)-555)
 ![No telemetry](https://img.shields.io/badge/telemetry-none-2ea44f)
 
 <img src="docs/kinetic.gif" width="270" alt="Kinetic text demo">
@@ -80,7 +80,7 @@ original, **shot by shot**:
 
 **Why is my render silent?** On purpose: add the sound inside TikTok, so it plays from the start and the loop restarts with it.
 
-**Does it need a GPU?** No. A native run on macOS or Windows is the fastest.
+**Does it need a GPU?** No. A native run on macOS is the fastest. Windows is in beta: it should work, but it is not tested on a real machine yet; please open an issue if something breaks.
 
 **Something broke.** Open an [issue](../../issues/new/choose) with the output of `node scripts/doctor.mjs` and the last lines of
 the failing command.
