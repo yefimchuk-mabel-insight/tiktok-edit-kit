@@ -9,7 +9,7 @@
 ![macOS · Linux · Windows (beta)](https://img.shields.io/badge/runs%20on-macOS%20·%20Linux%20·%20Windows%20(beta)-555)
 ![No telemetry](https://img.shields.io/badge/telemetry-none-2ea44f)
 
-<img src="docs/kinetic.gif" width="270" alt="Kinetic text demo">
+<img src="docs/kinetic.webp" width="270" alt="Kinetic text demo">
 
 Give it a song and a few lines of words: big captions land on the beat, slams flash and shake,<br>
 phrases whip out, and the video ends with the sound and loops without a seam.
@@ -44,17 +44,17 @@ The rules inside come from real complaints: "not on the beat", "the end is silen
 
 ## Pro: any edit → yours
 
-![How it works](docs/how-it-works.gif)
+![How it works](docs/how-it-works.webp)
 
 Found an edit you love and there's no CapCut template for it? Give Claude **the video (or its link) and your clips or photos.**
 Pro measures the edit frame by frame and rebuilds it on your footage. Before you see it, it checks the result against the
 original, **shot by shot**:
 
-![Reference vs your clips](docs/ref-to-result.gif)
+![Reference vs your clips](docs/ref-to-result.webp)
 
 | Film / travel | Dark film | Depth text | Cut-out layers |
-|---|---|---|---|
-| ![Footage](docs/footage.gif) | ![Dark footage](docs/footage-dark.gif) | ![Depth text](docs/depthtext.gif) | ![Layered](docs/layered.gif) |
+|:---:|:---:|:---:|:---:|
+| ![Footage](docs/footage.webp) | ![Dark footage](docs/footage-dark.webp) | ![Depth text](docs/depthtext.webp) | ![Layered](docs/layered.webp) |
 
 - every cut, including 2-frame montages and dark intros; flashes, light leaks, inverts and the film gate;
 - the grade of each shot (tone match), the motion inside each shot (motion match), and banding;

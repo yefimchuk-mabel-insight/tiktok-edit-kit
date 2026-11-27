@@ -1,6 +1,6 @@
 # Credits for the demo media in docs/
 
-The code is MIT (Lite) / proprietary (Pro). The demo GIFs/MP4 contain third-party media under their own licences:
+The code is MIT (Lite) / proprietary (Pro). The demo animations (WebP/MP4) contain third-party media under their own licences:
 
 - **how-it-works, footage, footage-dark, ref-to-result**: edits made with the kit from free stock clips from [Pixabay](https://pixabay.com) (Pixabay Content License). The "reference" in these demos is our own edit, not a third-party TikTok.
 - **kinetic, velocity, cinematic, collage, dossier**: template renders with generated placeholder content.
@@ -22,4 +22,4 @@ The code is MIT (Lite) / proprietary (Pro). The demo GIFs/MP4 contain third-part
   - `person-090.jpg` — openverse — https://www.flickr.com/photos/24918835@N03/5368014945 — CC BY-SA 2.0 — colinlogan
   - `person-094.jpg` — openverse — https://www.flickr.com/photos/107445583@N04/16695771271 — CC BY 2.0 — Street Photography candid
 
-CC BY-SA images: the GIFs that contain them (depthtext, layered) are shared under the same licence.
+CC BY-SA images: the animations that contain them (depthtext, layered) are shared under the same licence.
