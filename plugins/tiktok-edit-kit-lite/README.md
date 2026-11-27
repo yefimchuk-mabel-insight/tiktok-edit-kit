@@ -4,17 +4,17 @@
 
 **Beat-synced kinetic-text videos for TikTok, Reels and Shorts, made by Claude Code.**
 
-</div>
-
-Give it a song and a few lines of words: big captions land on the beat, slams flash and shake, phrases whip out, and the video
-ends with the sound and loops without a seam.
-
-![Kinetic text demo](docs/kinetic.gif)
-
 [![Claude Code plugin](https://img.shields.io/badge/Claude%20Code-plugin-d97757)](#install)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 ![macOS · Windows · Linux](https://img.shields.io/badge/runs%20on-macOS%20·%20Windows%20·%20Linux-555)
 ![No telemetry](https://img.shields.io/badge/telemetry-none-2ea44f)
+
+<img src="docs/kinetic.gif" width="270" alt="Kinetic text demo">
+
+Give it a song and a few lines of words: big captions land on the beat, slams flash and shake,<br>
+phrases whip out, and the video ends with the sound and loops without a seam.
+
+</div>
 
 ## Install
 
